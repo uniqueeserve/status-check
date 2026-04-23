@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+
+<style>
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(120deg, #4facfe, #00f2fe);
+  margin: 0;
+  padding: 20px;
+}
+
+/* LOGIN */
+.login-box {
+  max-width: 320px;
+  margin: 100px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+input {
+  width: 90%;
+  padding: 10px;
+  margin: 10px;
+}
+
+button {
+  padding: 10px;
+  width: 95%;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* DASHBOARD */
+.container {
+  display: none;
+  max-width: 1100px;
+  margin: auto;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 15px;
+}
+
+h2 {
+  text-align: center;
+  color: white;
+}
+
+/* TABLE */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+}
+
+th {
+  background: linear-gradient(45deg, #007bff, #00c6ff);
+  color: white;
+  padding: 10px;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+select {
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.save-btn {
+  background: green;
+  color: white;
+  padding: 5px;
+  border: none;
+  border-radius: 5px;
+}
+
+.logout {
+  float: right;
+  background: red;
+  width: auto;
+  padding: 8px 12px;
+}
+
+</style>
+
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-box" id="loginBox">
+<h3>🔐 Admin Login</h3>
+
+<input type="text" id="username" placeholder="Username">
+<input type="password" id="password" placeholder="Password">
+
+<button onclick="login()">Login</button>
+
+<p id="error" style="color:red;"></p>
+</div>
+
+<!-- DASHBOARD -->
+<div class="container" id="dashboard">
+
+<button class="logout" onclick="logout()">Logout</button>
+
+<h2>📋 Submitted Applications</h2>
+
+<table id="table">
+<thead>
+<tr>
+<th>App No</th>
+<th>Name</th>
+<th>Phone</th>
+<th>Service</th>
+<th>Date</th>
+<th>Status</th>
+<th>Save</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<script>
+
+const URL = "https://script.google.com/macros/s/AKfycbyKUQ2W0ExeidvO4ofGCV4_m_P1MLeWNJYNRlPrdlY5Qi8zjVHg1GM-eG7QXCm24lgzlA/exec";
+
+// 🔐 LOGIN (ENCODED PASSWORD)
+const USER = "admin";
+const PASS = "YWxwaGFkb2czMDIq"; // base64 of alphadog302*
+
+function login(){
+
+let u = document.getElementById("username").value;
+let p = document.getElementById("password").value;
+
+if(u === USER && btoa(p) === PASS){
+
+  sessionStorage.setItem("loggedIn", "true");
+
+  showDashboard();
+
+} else {
+  document.getElementById("error").innerText = "Invalid login";
+}
+
+}
+
+// AUTO LOGIN IF SESSION EXISTS
+if(sessionStorage.getItem("loggedIn")){
+  showDashboard();
+}
+
+// SHOW DASHBOARD
+function showDashboard(){
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  loadData();
+}
+
+// LOGOUT
+function logout(){
+  sessionStorage.clear();
+  location.reload();
+}
+
+// FORMAT DATE
+function formatDate(dateStr){
+  let d = new Date(dateStr);
+  return d.toLocaleString("en-IN");
+}
+
+// LOAD DATA
+function loadData(){
+
+fetch(URL)
+.then(res => res.json())
+.then(data => {
+
+  let table = document.querySelector("#table tbody");
+  table.innerHTML = "";
+
+  data.reverse().forEach(row => {
+
+    let tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${row.appNo}</td>
+      <td>${row.name}</td>
+      <td>${row.phone}</td>
+      <td>${row.service}</td>
+      <td>${formatDate(row.date)}</td>
+
+      <td>
+        <select id="status_${row.appNo}">
+          <option ${(!row.status || row.status==="Open")?"selected":""}>Open</option>
+          <option ${row.status==="In Process"?"selected":""}>In Process</option>
+          <option ${row.status==="Closed"?"selected":""}>Closed</option>
+        </select>
+      </td>
+
+      <td>
+        <button class="save-btn" onclick="updateStatus('${row.appNo}')">Save</button>
+      </td>
+    `;
+
+    table.appendChild(tr);
+  });
+
+});
+
+}
+
+// UPDATE STATUS
+function updateStatus(appNo){
+
+let status = document.getElementById("status_"+appNo).value;
+
+fetch(URL, {
+  method: "POST",
+  mode: "no-cors",
+  body: JSON.stringify({
+    appNo: appNo,
+    status: status
+  })
+});
+
+alert("✅ Status Updated");
+
+}
+
+</script>
+
+</body>
+</html>
