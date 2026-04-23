@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Unique eServe - Status Check</title>
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(120deg, #4facfe, #00f2fe);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 420px;
+  margin: 60px auto;
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.logo {
+  width: 220px;
+  margin-bottom: 15px;
+}
+
+input {
+  width: 85%;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+button {
+  width: 90%;
+  padding: 10px;
+  margin-top: 5px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+.reset-btn {
+  background: #28a745;
+}
+
+.captcha {
+  font-weight: bold;
+  margin: 10px;
+}
+
+/* TABLE */
+table {
+  width: 100%;
+  margin-top: 15px;
+  border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th {
+  background: #2c3e50;
+  color: white;
+  padding: 10px;
+}
+
+td {
+  padding: 10px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+tr:nth-child(even) td {
+  background: #eef3f7;
+}
+
+.error {
+  color: red;
+  margin-top: 15px;
+}
+
+.success {
+  color: green;
+}
+
+/* PROGRESS BAR */
+.progress-container {
+  margin-top: 20px;
+}
+
+.progress-track {
+  position: relative;
+  height: 6px;
+  background: #ddd;
+  border-radius: 10px;
+}
+
+.progress-fill {
+  height: 6px;
+  width: 0%;
+  background: #00c853;
+  border-radius: 10px;
+  transition: width 1s ease;
+}
+
+.progress-dot {
+  position: absolute;
+  top: -5px;
+  left: 0%;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border: 3px solid #00c853;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(0,0,0,0.2);
+  transition: left 1s ease;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.label.active {
+  color: #00c853;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<img src="https://blogger.googleusercontent.com/img/a/AVvXsEiDR011dznsKlAGLWaRNIaLFfOf1RB8ZiTUVgchjj-TcNcHZgpdPHqZadc26Kuvi_-vHIvMwvUJAJU1UhDcAXA-A0T7VoUaV5mSFh-z0c6-pRDTVIRAZDjuITKoR0XER07rm5V2pOTEqYtbVWx_NxLKD09uQmihyKqJxg9whb4fN7UPaFCsDSvNemtovhQ=s821" class="logo">
+
+<!-- FORM -->
+<div id="formBox">
+<h3>Application Status Check</h3>
+
+<input type="text" id="appNo" placeholder="Enter Application No">
+<input type="text" id="dob" placeholder="Enter DOB (DD-MM-YYYY)">
+
+<div class="captcha" id="captchaText"></div>
+<input type="text" id="captchaInput" placeholder="Enter Captcha">
+
+<button onclick="checkStatus()">Check Status</button>
+</div>
+
+<!-- RESULT -->
+<div id="resultBox" style="display:none;"></div>
+
+</div>
+
+<script>
+let num1, num2;
+
+function generateCaptcha() {
+  num1 = Math.floor(Math.random() * 10);
+  num2 = Math.floor(Math.random() * 10);
+  document.getElementById("captchaText").innerHTML =
+    "Solve: " + num1 + " + " + num2 + " = ?";
+}
+generateCaptcha();
+
+function resetForm() {
+  document.getElementById("appNo").value = "";
+  document.getElementById("dob").value = "";
+  document.getElementById("captchaInput").value = "";
+  generateCaptcha();
+}
+
+function goBack() {
+  document.getElementById("formBox").style.display = "block";
+  document.getElementById("resultBox").style.display = "none";
+  resetForm();
+}
+
+function checkStatus() {
+
+  let appNo = document.getElementById("appNo").value.trim();
+  let dob = document.getElementById("dob").value.trim();
+  let captchaValue = document.getElementById("captchaInput").value;
+
+  if (parseInt(captchaValue) !== (num1 + num2)) {
+    alert("Wrong Captcha");
+    generateCaptcha();
+    return;
+  }
+
+  fetch("https://script.google.com/macros/s/AKfycbwahQjzuP1RqkSjBqLBceY8nWpDUtvh2vF8TH-R26SoYwKpVDjrXBdWT5YF5d4sj-Dj/exec?appNo=" + appNo + "&dob=" + dob)
+    .then(res => res.json())
+    .then(data => {
+
+      document.getElementById("formBox").style.display = "none";
+      document.getElementById("resultBox").style.display = "block";
+
+      if (!data || data.status === "Invalid") {
+        document.getElementById("resultBox").innerHTML =
+          "<div class='error'>❌ NO RESULT FOUND</div>" +
+          "<button class='reset-btn' onclick='goBack()'>Check Another</button>";
+        return;
+      }
+
+      let progress = 0;
+      if (data.status.toLowerCase().includes("processing")) progress = 50;
+      else if (data.status.toLowerCase().includes("complete")) progress = 100;
+
+      let panExtra = "";
+
+      if (data.service.toLowerCase() === "pan") {
+
+        if (data.trackingId) {
+          panExtra += "<div style='margin-top:10px;'><b>Tracking ID:</b> " +
+            "<a target='_blank' href='https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?consignmentNumber=" + data.trackingId + "'>" +
+            data.trackingId + "</a></div>";
+        }
+
+        if (data.trackingRemarks) {
+          panExtra += "<div style='margin-top:10px; padding:10px; background:#fff3cd; border-radius:6px;'>" +
+            data.trackingRemarks + "</div>";
+        }
+
+        if (!data.trackingId && !data.trackingRemarks) {
+          panExtra += "<div style='margin-top:10px;color:#888;'>📦 Tracking will be available after dispatch</div>";
+        }
+      }
+
+      document.getElementById("resultBox").innerHTML =
+
+        "<div class='progress-container'>" +
+          "<div class='progress-track'>" +
+            "<div id='progressFill' class='progress-fill'></div>" +
+            "<div id='progressDot' class='progress-dot'></div>" +
+          "</div>" +
+
+          "<div class='progress-labels'>" +
+            "<div class='label " + (progress>=0?"active":"") + "'>Submitted</div>" +
+            "<div class='label " + (progress>=50?"active":"") + "'>Processing</div>" +
+            "<div class='label " + (progress>=100?"active":"") + "'>Completed</div>" +
+          "</div>" +
+        "</div>" +
+
+        "<table>" +
+        "<tr><th>Field</th><th>Details</th></tr>" +
+        "<tr><td>Client Name</td><td>" + data.name + "</td></tr>" +
+        "<tr><td>Service</td><td>" + data.service + "</td></tr>" +
+        "<tr><td>Service Type</td><td>" + data.serviceType + "</td></tr>" +
+        "<tr><td>Application No</td><td>" + data.serviceAppNo + "</td></tr>" +
+        "<tr><td>Status</td><td class='success'><b>" + data.status + "</b></td></tr>" +
+        "<tr><td>Date</td><td>" + data.date + "</td></tr>" +
+        "</table>" +
+
+        panExtra +
+
+        "<button class='reset-btn' onclick='goBack()'>Check Another</button>";
+
+      setTimeout(() => {
+        document.getElementById("progressFill").style.width = progress + "%";
+        document.getElementById("progressDot").style.left = progress + "%";
+      }, 100);
+
+    });
+}
+</script>
+
+</body>
+</html>
